@@ -31,6 +31,7 @@ async function run() {
 
         const db = client.db('drivefleet-db');
         const carsCollection = db.collection('cars');
+        const bookingsCollection = db.collection('bookings');
 
         const verifyToken = (req, res, next) => {
             const authHeader = req.headers.authorization;
@@ -122,7 +123,61 @@ async function run() {
 
             res.json({
                 status: 'success',
-                data: cars
+                data: result
+            })
+        })
+
+        app.get('/bookings', async (req, res) => {
+            const bookings = await bookingsCollection.find().toArray();
+
+            res.json({
+                status: 'success',
+                data: bookings
+            })
+        })
+        app.post('/bookings', async (req, res) => {
+            const newBookingData = req.body;
+            // console.log("new Booking Data: ", newBookingData);
+
+            const cars = await bookingsCollection.insertOne(newBookingData);
+            
+            res.json({
+                status: 'success',
+                data: newBookingData
+            })
+        })
+        app.get('/bookings/:id', async (req, res) => {
+            const { id } = req.params;
+
+            const bookingData = await bookingsCollection.findOne({_id: new ObjectId(id)});
+
+            res.json({
+                status: 'success',
+                data: bookingData
+            })
+        })
+        app.patch('/bookings/:id', async (req, res) => {
+            const { id } = req.params;
+            const editedBookingData = req.body;
+
+            const updatedBookingData = await bookingsCollection.updateOne(
+                {_id: new ObjectId(id)},
+                {$set: editedBookingData}
+            )
+
+            res.json({
+                status: 'success',
+                data: updatedBookingData
+            })
+        })
+        app.delete('/bookings/:id', async (req, res) => {
+            const { id } = req.params;
+
+            const result = await bookingsCollection.deleteOne({_id: new ObjectId(id)});
+
+            res.json({
+                status: 'success',
+                data: result
             })
         })
 
