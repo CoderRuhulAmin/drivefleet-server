@@ -81,6 +81,7 @@ async function run() {
                 data: cars
             })
         })
+
         app.post('/cars', async (req, res) => {
             const newCarData = req.body;
             // console.log("new Car Data: ", newCarData);
@@ -92,6 +93,17 @@ async function run() {
                 data: cars
             })
         })
+        
+        app.get('/cars/user/:email', async (req, res) => {
+            const { email } = req.params;
+            const cars = await carsCollection.find({userEmail: email}).toArray();
+
+            res.json({
+                status: 'success',
+                data: cars
+            })
+        })
+
         app.get('/cars/:id', async (req, res) => {
             const { id } = req.params;
 
@@ -127,7 +139,7 @@ async function run() {
             })
         })
 
-        app.get('/bookings', async (req, res) => {
+        app.get('/my-bookings', async (req, res) => {
             const bookings = await bookingsCollection.find().toArray();
 
             res.json({
@@ -135,7 +147,7 @@ async function run() {
                 data: bookings
             })
         })
-        app.post('/bookings', async (req, res) => {
+        app.post('/my-bookings', async (req, res) => {
             const newBookingData = req.body;
             // console.log("new Booking Data: ", newBookingData);
 
@@ -146,7 +158,7 @@ async function run() {
                 data: newBookingData
             })
         })
-        app.get('/bookings/:id', async (req, res) => {
+        app.get('/my-bookings/:id', async (req, res) => {
             const { id } = req.params;
 
             const bookingData = await bookingsCollection.findOne({_id: new ObjectId(id)});
@@ -156,7 +168,7 @@ async function run() {
                 data: bookingData
             })
         })
-        app.patch('/bookings/:id', async (req, res) => {
+        app.patch('/my-bookings/:id', async (req, res) => {
             const { id } = req.params;
             const editedBookingData = req.body;
 
@@ -170,7 +182,7 @@ async function run() {
                 data: updatedBookingData
             })
         })
-        app.delete('/bookings/:id', async (req, res) => {
+        app.delete('/my-bookings/:id', async (req, res) => {
             const { id } = req.params;
 
             const result = await bookingsCollection.deleteOne({_id: new ObjectId(id)});
