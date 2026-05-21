@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 
 
 const app = express();
@@ -61,30 +62,98 @@ async function run() {
             next();
         }
 
+
+        const JWKS = createRemoteJWKSet(
+            new URL(`${process.env.CLIENT_BASE_URL}/api/auth/jwks`)
+        )
+        const verifyJwtToken = async (req, res, next) => {
+            const authHeader = req.headers.authorization;
+            console.log(authHeader);
+
+            if (!authHeader) {
+                return res.status(401).json({
+                    status: "error",
+                    message: "No authorization header found"
+                });
+            }
+            const token = authHeader.split(" ")[1];
+            console.log(token);
+
+            if (!token) {
+                return res.status(401).json({
+                    status: "error",
+                    message: "Authorization token not found!"
+                });
+            } 
+            
+            try{
+
+                const {payload} = await jwtVerify(token, JWKS);
+                console.log("JWT Payload: ", payload)
+
+                next();
+                
+            } catch(error){
+
+                return res.status(403).json({
+                    message: "Forbidden!"
+                })
+
+            }
+        }
+
         app.get("/", (req, res) => {
             res.send("Server is running fine!");
         });
 
         app.get('/featured', async (req, res) => {
-            const cars = await carsCollection.find().limit(4).toArray();
-            res.json({
-                status: 'success',
-                data: cars
-            });
+            try{
+
+                const cars = await carsCollection.find().limit(4).toArray();
+
+                res.json({
+                    status: 'success',
+                    message: 'Featured cars are Loaded Successfully!',
+                    data: cars
+                });
+            }catch (error){
+                res.status(500).json({
+                    status: 'failed',
+                    message: error.message
+                })
+            }
         })
 
         app.get('/cars', async (req, res) => {
-            const cars = await carsCollection.find().toArray();
 
-            res.json({
-                status: 'success',
-                data: cars
-            })
+            try{
+                const status = req.query.status;
+                let query = {};
+
+                if(status){
+                    if(status.toLowerCase() !== "all"){
+                        query.availabilityStatus = status;
+                    }
+                }
+
+                const cars = await carsCollection.find(query).toArray();
+
+                res.json({
+                    status: 'success',
+                    message: 'Data are Loaded Successfully!',
+                    data: cars
+                });
+            }catch (error){
+                res.status(500).json({
+                    status: 'failed',
+                    message: error.message
+                })
+            }
         })
 
-        app.post('/cars', async (req, res) => {
+        app.post('/cars', verifyJwtToken, async (req, res) => {
             const newCarData = req.body;
-            // console.log("new Car Data: ", newCarData);
+            console.log("new Car Data: ", newCarData);
 
             const cars = await carsCollection.insertOne(newCarData);
             
@@ -139,7 +208,7 @@ async function run() {
             })
         })
 
-        app.get('/my-bookings', async (req, res) => {
+        app.get('/my-bookings', verifyJwtToken, async (req, res) => {
             const bookings = await bookingsCollection.find().toArray();
 
             res.json({
